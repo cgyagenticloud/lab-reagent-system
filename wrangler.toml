@@ -1,0 +1,7 @@
+name = "lab-reagent-system"
+compatibility_date = "2024-09-23"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "lab-reagents-db"
+database_id = "PLACEHOLDER"

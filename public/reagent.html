@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reagent — ReagentTracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom sticky-top">
+    <div class="container-fluid">
+        <a class="navbar-brand fw-bold" href="index.html"><i class="bi bi-droplet-fill text-primary"></i> ReagentTracker</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav"><span class="navbar-toggler-icon"></span></button>
+        <div class="collapse navbar-collapse" id="nav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item"><a class="nav-link" href="index.html"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link active" href="reagents.html"><i class="bi bi-box-seam"></i> Reagents</a></li>
+                <li class="nav-item"><a class="nav-link" href="orders.html"><i class="bi bi-cart3"></i> Orders</a></li>
+                <li class="nav-item"><a class="nav-link" href="categories.html"><i class="bi bi-tags"></i> Categories</a></li>
+                <li class="nav-item"><a class="nav-link" href="users.html"><i class="bi bi-people"></i> Users</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<main class="container-fluid py-4 px-3 px-lg-4">
+    <nav aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="reagents.html">Reagents</a></li><li class="breadcrumb-item active" id="breadcrumb-name">…</li></ol></nav>
+
+    <div class="d-flex justify-content-between align-items-start mb-3">
+        <div>
+            <h2 class="mb-1" id="reagent-name">Loading…</h2>
+            <span id="reagent-category"></span>
+        </div>
+        <div class="d-flex gap-2">
+            <a id="btn-edit" href="#" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil"></i> Edit</a>
+            <button id="btn-delete" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i> Delete</button>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <div class="card h-100"><div class="card-header">Details</div><div class="card-body">
+                <table class="table table-sm mb-0">
+                    <tr><th style="width:40%">CAS #</th><td id="detail-cas">—</td></tr>
+                    <tr><th>Catalog #</th><td id="detail-catalog">—</td></tr>
+                    <tr><th>Lot #</th><td id="detail-lot">—</td></tr>
+                    <tr><th>Vendor</th><td id="detail-vendor">—</td></tr>
+                    <tr><th>Storage</th><td id="detail-storage">—</td></tr>
+                    <tr><th>Price/Unit</th><td id="detail-price">—</td></tr>
+                    <tr><th>Expiration</th><td id="detail-expiration">—</td></tr>
+                    <tr><th>Date Added</th><td id="detail-added">—</td></tr>
+                    <tr><th>Notes</th><td id="detail-notes">—</td></tr>
+                </table>
+            </div></div>
+        </div>
+        <div class="col-md-6">
+            <div class="card mb-3"><div class="card-header">Stock</div><div class="card-body text-center">
+                <div id="detail-stock" class="display-4 fw-bold">—</div>
+                <div class="text-muted" id="detail-unit"></div>
+            </div></div>
+            <div class="card"><div class="card-header"><i class="bi bi-dash-circle"></i> Log Usage</div><div class="card-body">
+                <form id="usage-form">
+                    <div class="row g-2">
+                        <div class="col-4"><input type="number" step="any" min="0.001" id="use-qty" class="form-control form-control-sm" placeholder="Qty" required></div>
+                        <div class="col-4"><select id="use-user" class="form-select form-select-sm"><option value="">— User —</option></select></div>
+                        <div class="col-4"><button class="btn btn-sm btn-warning w-100" type="submit"><i class="bi bi-dash-lg"></i> Use</button></div>
+                        <div class="col-12"><input type="text" id="use-notes" class="form-control form-control-sm" placeholder="Notes (optional)"></div>
+                    </div>
+                </form>
+            </div></div>
+        </div>
+    </div>
+
+    <div class="card mb-3" id="usage-section" style="display:none">
+        <div class="card-header"><i class="bi bi-clock-history"></i> Usage History</div>
+        <div class="card-body p-0"><table class="table table-sm table-hover mb-0"><thead><tr><th>Date</th><th>User</th><th>Quantity</th><th>Notes</th></tr></thead><tbody id="usage-tbody"></tbody></table></div>
+    </div>
+
+    <div class="card mb-3" id="orders-section" style="display:none">
+        <div class="card-header"><i class="bi bi-cart3"></i> Orders</div>
+        <div class="card-body p-0"><table class="table table-sm table-hover mb-0"><thead><tr><th>Date</th><th>Qty</th><th>Price</th><th>Status</th></tr></thead><tbody id="orders-tbody"></tbody></table></div>
+    </div>
+</main>
+
+<footer class="text-center text-muted py-3 border-top small">ReagentTracker v1.0</footer>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/app.js"></script>
+<script>loadReagentDetail();</script>
+</body>
+</html>
