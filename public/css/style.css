@@ -10,3 +10,7 @@ footer { font-size: .85rem; }
 .stat-card:hover { transform: translateY(-2px); }
 .loading { text-align: center; padding: 3rem; color: #6c757d; }
 .toast-container { position: fixed; top: 1rem; right: 1rem; z-index: 9999; }
+@media print {
+  .navbar, footer, .no-print, .toast-container { display: none !important; }
+  .label-item { border: 1px solid #999; break-inside: avoid; }
+}

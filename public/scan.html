@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scan QR Code — ReagentTracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom sticky-top">
+    <div class="container-fluid">
+        <a class="navbar-brand fw-bold" href="index.html"><i class="bi bi-droplet-fill text-primary"></i> ReagentTracker</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav"><span class="navbar-toggler-icon"></span></button>
+        <div class="collapse navbar-collapse" id="nav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item"><a class="nav-link" href="index.html"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link" href="reagents.html"><i class="bi bi-box-seam"></i> Reagents</a></li>
+                <li class="nav-item"><a class="nav-link" href="preparations.html"><i class="bi bi-droplet-half"></i> Preparations</a></li>
+                <li class="nav-item"><a class="nav-link" href="orders.html"><i class="bi bi-cart3"></i> Orders</a></li>
+                <li class="nav-item"><a class="nav-link" href="categories.html"><i class="bi bi-tags"></i> Categories</a></li>
+                <li class="nav-item"><a class="nav-link" href="users.html"><i class="bi bi-people"></i> Users</a></li>
+            </ul>
+            <a href="scan.html" class="btn btn-primary btn-sm me-2" title="Scan QR Code"><i class="bi bi-qr-code-scan"></i> Scan</a>
+        </div>
+    </div>
+</nav>
+
+<main class="container py-4" style="max-width:600px">
+    <h2 class="mb-3"><i class="bi bi-qr-code-scan"></i> Scan Reagent QR Code</h2>
+    <div class="card mb-3">
+        <div class="card-body">
+            <div id="reader" style="width:100%"></div>
+        </div>
+    </div>
+    <div id="scan-result" class="alert alert-success d-none">
+        <h5 class="alert-heading">Reagent Found!</h5>
+        <p id="scan-info"></p>
+        <div class="d-flex gap-2">
+            <a id="scan-link" href="#" class="btn btn-primary btn-sm"><i class="bi bi-eye"></i> View Details</a>
+            <button id="scan-again" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-repeat"></i> Scan Again</button>
+        </div>
+    </div>
+    <div id="scan-error" class="alert alert-warning d-none">
+        <p class="mb-0" id="scan-error-text"></p>
+        <button id="scan-retry" class="btn btn-outline-warning btn-sm mt-2"><i class="bi bi-arrow-repeat"></i> Try Again</button>
+    </div>
+</main>
+
+<footer class="text-center text-muted py-3 border-top small">ReagentTracker v1.0</footer>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="js/app.js"></script>
+<script>
+(function() {
+    const html5QrCode = new Html5Qrcode("reader");
+    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+    function startScanner() {
+        $('#scan-result').classList.add('d-none');
+        $('#scan-error').classList.add('d-none');
+        html5QrCode.start(
+            { facingMode: "environment" },
+            config,
+            (decodedText) => {
+                html5QrCode.stop();
+                handleScan(decodedText);
+            },
+            () => {}
+        ).catch(err => {
+            $('#scan-error').classList.remove('d-none');
+            $('#scan-error-text').textContent = 'Camera access denied or unavailable. ' + err;
+        });
+    }
+
+    function handleScan(text) {
+        // Try to extract reagent ID from URL or plain number
+        let id = null;
+        try {
+            const url = new URL(text);
+            id = url.searchParams.get('id');
+        } catch {
+            if (/^\d+$/.test(text.trim())) id = text.trim();
+        }
+
+        if (id) {
+            $('#scan-result').classList.remove('d-none');
+            $('#scan-info').textContent = 'Reagent ID: ' + id;
+            $('#scan-link').href = 'reagent.html?id=' + id;
+        } else {
+            $('#scan-error').classList.remove('d-none');
+            $('#scan-error-text').textContent = 'Unrecognized QR code: ' + text;
+        }
+    }
+
+    $('#scan-again').onclick = startScanner;
+    $('#scan-retry').onclick = startScanner;
+    startScanner();
+})();
+</script>
+</body>
+</html>

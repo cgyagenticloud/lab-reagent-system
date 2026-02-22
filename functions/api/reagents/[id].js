@@ -6,13 +6,15 @@ export async function onRequestGet(context) {
   ).bind(id).first();
   if (!r) return new Response("Not found", { status: 404 });
 
-  const [usage, orders] = await Promise.all([
+  const [usage, orders, preparations] = await Promise.all([
     db.prepare("SELECT ul.*, u.name as user_name FROM usage_log ul LEFT JOIN users u ON ul.user_id=u.id WHERE ul.reagent_id=? ORDER BY ul.date DESC LIMIT 20").bind(id).all(),
     db.prepare("SELECT o.*, u.name as orderer_name FROM orders o LEFT JOIN users u ON o.ordered_by=u.id WHERE o.reagent_id=? ORDER BY o.date_ordered DESC").bind(id).all(),
+    db.prepare("SELECT p.*, u.name as preparer_name FROM preparations p LEFT JOIN users u ON p.prepared_by=u.id WHERE p.reagent_id=? ORDER BY p.date_prepared DESC").bind(id).all(),
   ]);
 
   r.usage = usage.results;
   r.orders = orders.results;
+  r.preparations = preparations.results;
   return Response.json(r);
 }
 

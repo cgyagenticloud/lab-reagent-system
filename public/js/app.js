@@ -140,13 +140,14 @@ async function loadReagents() {
     $('#reagent-count').textContent = data.length;
     const tbody = $('#reagent-tbody');
     if (data.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No reagents found.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">No reagents found.</td></tr>';
       return;
     }
     tbody.innerHTML = data.map(r => {
       const isLow = r.current_stock <= r.minimum_threshold;
       const isExpired = r.expiration_date && r.expiration_date < nowStr;
       return `<tr class="${isLow ? 'table-warning' : ''}">
+        <td><input type="checkbox" class="reagent-check" data-id="${r.id}" data-name="${esc(r.name)}" data-catalog="${esc(r.catalog_number||'')}" data-storage="${esc(r.storage_temp||'')} ${esc(r.storage_location||'')}" data-expiration="${esc(r.expiration_date||'')}"></td>
         <td><a href="reagent.html?id=${r.id}" class="fw-semibold text-decoration-none">${esc(r.name)}</a></td>
         <td>${r.category_name ? `<span class="badge" style="background:${esc(r.category_color)}">${esc(r.category_name)}</span>` : ''}</td>
         <td class="small">${esc(r.vendor || '')}</td>
@@ -157,6 +158,31 @@ async function loadReagents() {
         <td><a href="reagent.html?id=${r.id}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a></td>
       </tr>`;
     }).join('');
+
+    // Select all / bulk print
+    const selectAll = $('#select-all');
+    const bulkBtn = $('#btn-bulk-print');
+    if (selectAll) {
+      selectAll.onchange = () => {
+        $$('.reagent-check').forEach(cb => cb.checked = selectAll.checked);
+        updateBulkBtn();
+      };
+      document.addEventListener('change', e => { if (e.target.classList.contains('reagent-check')) updateBulkBtn(); });
+    }
+    function updateBulkBtn() {
+      const checked = $$('.reagent-check:checked');
+      if (bulkBtn) bulkBtn.classList.toggle('d-none', checked.length === 0);
+    }
+    if (bulkBtn) {
+      bulkBtn.onclick = () => {
+        const selected = $$('.reagent-check:checked').map(cb => ({
+          id: cb.dataset.id, name: cb.dataset.name,
+          catalog: cb.dataset.catalog, storage: cb.dataset.storage,
+          expiration: cb.dataset.expiration
+        }));
+        printLabels(selected);
+      };
+    }
   } catch (e) {
     toast('Failed to load reagents: ' + e.message, 'danger');
   }
@@ -239,6 +265,76 @@ async function loadReagentDetail() {
       $('#orders-tbody').innerHTML = r.orders.map(o =>
         `<tr><td class="small">${esc(o.date_ordered || '—')}</td><td>${o.quantity}</td><td>${o.price ? '$' + Number(o.price).toFixed(2) : '—'}</td><td>${o.status === 'received' ? '<span class="badge bg-success">Received</span>' : '<span class="badge bg-warning text-dark">Pending</span>'}</td></tr>`
       ).join('');
+    }
+
+    // Preparations
+    const prepUserSel = $('#prep-user');
+    if (prepUserSel) {
+      users.forEach(u => { const o = document.createElement('option'); o.value = u.id; o.textContent = u.name; prepUserSel.appendChild(o); });
+    }
+    if (r.preparations && r.preparations.length > 0) {
+      $('#prep-tbody').innerHTML = r.preparations.map(p =>
+        `<tr>
+          <td class="fw-semibold">${esc(p.name)}</td>
+          <td>${esc(p.concentration || '—')}</td>
+          <td>${p.volume ? p.volume + ' ' + esc(p.unit||'') : '—'}</td>
+          <td>${esc(p.preparer_name || '—')}</td>
+          <td class="small">${esc((p.date_prepared||'').slice(0,10))}</td>
+          <td class="small">${esc(p.expiration_date || '—')}</td>
+          <td><button class="btn btn-sm btn-outline-danger btn-del-prep" data-id="${p.id}"><i class="bi bi-trash"></i></button></td>
+        </tr>`
+      ).join('');
+      $$('.btn-del-prep').forEach(btn => {
+        btn.onclick = async () => {
+          if (!confirm('Delete this preparation?')) return;
+          await api(`/preparations/${btn.dataset.id}`, { method: 'DELETE' });
+          toast('Preparation deleted.', 'warning');
+          loadReagentDetail();
+        };
+      });
+    }
+
+    // Preparation form
+    const prepForm = $('#prep-form');
+    if (prepForm) {
+      $('#prep-date').value = today();
+      prepForm.onsubmit = async (e) => {
+        e.preventDefault();
+        await api('/preparations', { method: 'POST', body: JSON.stringify({
+          reagent_id: parseInt(id),
+          name: $('#prep-name').value,
+          concentration: $('#prep-concentration').value || null,
+          volume: parseFloat($('#prep-volume').value) || null,
+          unit: $('#prep-unit').value || 'mL',
+          prepared_by: $('#prep-user').value ? parseInt($('#prep-user').value) : null,
+          date_prepared: $('#prep-date').value || today(),
+          expiration_date: $('#prep-expiration').value || null,
+          protocol: $('#prep-protocol').value || null,
+          notes: $('#prep-notes').value || null,
+        })});
+        toast('Preparation added.');
+        loadReagentDetail();
+      };
+    }
+
+    // QR Code
+    const qrEl = $('#qrcode');
+    if (qrEl && typeof QRCode !== 'undefined') {
+      qrEl.innerHTML = '';
+      new QRCode(qrEl, { text: `https://lab-reagent-system.pages.dev/reagent.html?id=${id}`, width: 150, height: 150 });
+    }
+
+    // Print single label
+    const printBtn = $('#btn-print-label');
+    if (printBtn) {
+      printBtn.onclick = () => {
+        printLabels([{
+          id: id, name: r.name,
+          catalog: r.catalog_number || '',
+          storage: (r.storage_temp || '') + ' ' + (r.storage_location || ''),
+          expiration: r.expiration_date || ''
+        }]);
+      };
     }
   } catch (e) {
     toast('Failed to load reagent: ' + e.message, 'danger');
@@ -455,4 +551,91 @@ async function loadUsers() {
   } catch (e) {
     toast('Failed to load users: ' + e.message, 'danger');
   }
+}
+
+// ── Page: Preparations ─────────────────────────────────────────────────
+async function loadPreparations() {
+  try {
+    const params = new URLSearchParams();
+    const q = $('#prep-filter-q')?.value || '';
+    if (q) params.set('q', q);
+    const data = await api('/preparations?' + params.toString());
+    $('#prep-count').textContent = data.length;
+    const tbody = $('#prep-tbody');
+    if (data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No preparations found.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.map(p =>
+      `<tr>
+        <td class="fw-semibold">${esc(p.name)}</td>
+        <td>${p.reagent_name ? `<a href="reagent.html?id=${p.reagent_id}">${esc(p.reagent_name)}</a>` : '—'}</td>
+        <td>${esc(p.concentration || '—')}</td>
+        <td>${p.volume ? p.volume + ' ' + esc(p.unit||'') : '—'}</td>
+        <td>${esc(p.preparer_name || '—')}</td>
+        <td class="small">${esc((p.date_prepared||'').slice(0,10))}</td>
+        <td class="small">${esc(p.expiration_date || '—')}</td>
+        <td><button class="btn btn-sm btn-outline-danger btn-del-prep" data-id="${p.id}"><i class="bi bi-trash"></i></button></td>
+      </tr>`
+    ).join('');
+    $$('.btn-del-prep').forEach(btn => {
+      btn.onclick = async () => {
+        if (!confirm('Delete this preparation?')) return;
+        await api(`/preparations/${btn.dataset.id}`, { method: 'DELETE' });
+        toast('Preparation deleted.', 'warning');
+        loadPreparations();
+      };
+    });
+
+    // Filter form
+    const filterForm = $('#prep-filter-form');
+    if (filterForm) filterForm.onsubmit = (e) => { e.preventDefault(); loadPreparations(); };
+  } catch (e) {
+    toast('Failed to load preparations: ' + e.message, 'danger');
+  }
+}
+
+// ── Print Labels ───────────────────────────────────────────────────────
+function printLabels(items) {
+  const win = window.open('', '_blank');
+  const labelsHtml = items.map(item => `
+    <div class="label-item">
+      <div class="label-qr" id="qr-${item.id}"></div>
+      <div class="label-info">
+        <div class="label-name">${item.name}</div>
+        <div class="label-detail">Cat#: ${item.catalog || '—'}</div>
+        <div class="label-detail">${item.storage || ''}</div>
+        <div class="label-detail">Exp: ${item.expiration || '—'}</div>
+      </div>
+    </div>
+  `).join('');
+
+  win.document.write(`<!DOCTYPE html><html><head><title>Print Labels</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"><\/script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: 'Segoe UI', system-ui, sans-serif; padding: 10mm; }
+      .label-sheet { display: flex; flex-wrap: wrap; gap: 5mm; }
+      .label-item { display: flex; align-items: center; gap: 3mm; border: 1px solid #ccc; border-radius: 4px; padding: 3mm; width: 63.5mm; height: 25.4mm; overflow: hidden; page-break-inside: avoid; }
+      .label-qr { flex-shrink: 0; }
+      .label-qr canvas, .label-qr img { width: 18mm !important; height: 18mm !important; }
+      .label-info { flex: 1; min-width: 0; }
+      .label-name { font-weight: 700; font-size: 9pt; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .label-detail { font-size: 7pt; color: #555; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .no-print { text-align: center; padding: 10px; }
+      @media print { .no-print { display: none; } .label-item { border-color: #999; } }
+    </style>
+  </head><body>
+    <div class="no-print"><button onclick="window.print()">🖨️ Print</button></div>
+    <div class="label-sheet">${labelsHtml}</div>
+    <script>
+      ${JSON.stringify(items)}.forEach(function(item) {
+        new QRCode(document.getElementById('qr-' + item.id), {
+          text: 'https://lab-reagent-system.pages.dev/reagent.html?id=' + item.id,
+          width: 68, height: 68
+        });
+      });
+    <\/script>
+  </body></html>`);
+  win.document.close();
 }
